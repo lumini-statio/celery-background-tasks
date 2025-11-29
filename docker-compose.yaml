@@ -1,0 +1,64 @@
+# read more on https://www.codingforentrepreneurs.com/shorts/how-i-use-redis-for-new-projects-with-docker-compose/
+version: '3.9'
+services:
+    redis:
+        image: redis
+        container_name: redis
+        restart: always
+        ports:
+            - 6380:6379
+        volumes:
+            - redis_data:/data
+        networks:
+            - redis-net
+
+    web:
+        build: .
+        container_name: web
+        command: >
+            sh -c "python manage.py migrate &&
+                python manage.py runserver 0.0.0.0:8000"
+        volumes:
+        - .:/app
+        ports:
+        - "8000:8000"
+        depends_on:
+        - redis
+        environment:
+        - CELERY_BROKER_URL=redis://redis:6379/0
+        - DEBUG=True
+    
+    celery_worker:
+        build: .
+        container_name: celery-worker
+        command: celery -A cfehome worker --loglevel=info -E
+        volumes: 
+            - .:/app
+        depends_on:
+            - redis
+        environment:
+            - CELERY_BROKER_URL=redis://redis:6379/0
+            - DEBUG=True
+        networks:
+            - redis-net
+    
+    celery_beat:
+        build: .
+        container_name: celery-beat
+        command: celery -A cfehome beat --loglevel=info
+        volumes:
+            - .:/app
+        depends_on:
+            - redis
+        environment:
+            - CELERY_BROKER_URL=redis://redis:6379/0
+            - DEBUG=True
+        networks:
+            - redis-net
+
+volumes:
+    redis_data:
+
+networks:
+    redis-net:
+        driver: bridge
