@@ -14,10 +14,12 @@ services:
 
     web:
         build: .
+        image: web
         container_name: web
         command: >
-            sh -c "python manage.py migrate &&
-                python manage.py runserver 0.0.0.0:8000"
+            sh -c "cd src &&
+                python manage.py migrate &&
+                gunicorn --bind 0.0.0.0:8000 --workers 3 cfehome.wsgi:application"
         volumes:
         - .:/app
         ports:
@@ -30,8 +32,10 @@ services:
     
     celery_worker:
         build: .
+        image: celery-worker
         container_name: celery-worker
-        command: celery -A cfehome worker --loglevel=info -E
+        command: >
+            sh -c "cd src && celery -A cfehome worker --loglevel=info -E"
         volumes: 
             - .:/app
         depends_on:
@@ -44,8 +48,10 @@ services:
     
     celery_beat:
         build: .
+        image: celery-beat
         container_name: celery-beat
-        command: celery -A cfehome beat --loglevel=info
+        command: >
+            sh -c "cd src && celery -A cfehome beat --loglevel=info"
         volumes:
             - .:/app
         depends_on:

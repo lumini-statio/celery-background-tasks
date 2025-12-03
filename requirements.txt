@@ -1,6 +1,8 @@
-Celery
+Celery==5.5.3
 Django==4.0
-django-celery-beat 
-django-celery-results # currently requires Django 4.0 or older
-python-decouple
-redis
+django-celery-beat==2.8.1
+django-celery-results==2.6.0 # currently requires Django 4.0 or older
+python-decouple==3.8
+redis==7.1.0
+requests==2.32.5
+gunicorn==23.0.0
