@@ -120,12 +120,15 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+MEDIA_URL = "/media/"
+MEDIA_PATH = f"{BASE_DIR}/media/"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Celery
-CELERY_BROKER_URL = config("CELERY_BROKER_REDIS_URL", default="redis://localhost:6379")
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="amqp://user:password@rabbitmq:5672//")
 
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

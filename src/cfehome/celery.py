@@ -15,8 +15,12 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     "fetch-pokemon": {
         "task": "movies.tasks.api",
-        "schedule": crontab(minute='*'),
+        "schedule": 15.0,
     },
+    "delete_files": {
+        "task": "movies.tasks.delete_files",
+        "schedule": crontab(minute='*')
+    }
 }
 
 app.conf.update(
