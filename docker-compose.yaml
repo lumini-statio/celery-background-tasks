@@ -1,16 +1,14 @@
 # read more on https://www.codingforentrepreneurs.com/shorts/how-i-use-redis-for-new-projects-with-docker-compose/
-version: '3.9'
 services:
-    redis:
-        image: redis
-        container_name: redis
-        restart: always
-        ports:
-            - 6380:6379
+    rabbitmq:
+        image: rabbitmq:latest
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+            RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
         volumes:
-            - redis_data:/data
+            - rabbitmq_data:/var/lib/rabbitmq
         networks:
-            - redis-net
+            - backend
 
     web:
         build: .
@@ -25,9 +23,9 @@ services:
         ports:
         - "8000:8000"
         depends_on:
-        - redis
+        - rabbitmq
         environment:
-        - CELERY_BROKER_URL=redis://redis:6379/0
+        - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}//
         - DEBUG=True
     
     celery_worker:
@@ -38,13 +36,14 @@ services:
             sh -c "cd src && celery -A cfehome worker --loglevel=info -E"
         volumes: 
             - .:/app
+            - /opt/celery/media:/app/src/media
         depends_on:
-            - redis
+            - rabbitmq
         environment:
-            - CELERY_BROKER_URL=redis://redis:6379/0
+            - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}//
             - DEBUG=True
         networks:
-            - redis-net
+            - backend
     
     celery_beat:
         build: .
@@ -55,16 +54,16 @@ services:
         volumes:
             - .:/app
         depends_on:
-            - redis
+            - rabbitmq
         environment:
-            - CELERY_BROKER_URL=redis://redis:6379/0
+            - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}//
             - DEBUG=True
         networks:
-            - redis-net
+            - backend
 
 volumes:
-    redis_data:
+    rabbitmq_data:
 
 networks:
-    redis-net:
+    backend:
         driver: bridge
