@@ -3,6 +3,10 @@ import requests
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from .models import Pokemon
+import json
+import os
+
+from django.conf import settings
 
 logger = get_task_logger(__name__)
 
@@ -19,6 +23,9 @@ def api(self):
         xp = pokemon['base_experience']
         height = pokemon['height']
         
+        with open(f'{settings.MEDIA_PATH}/{name}.json', 'w', encoding='utf-8') as file:
+            json.dump(pokemon, file, indent=4, ensure_ascii=False)
+        
         poke_db = Pokemon(
             name=name,
             base_experience=xp,
@@ -28,30 +35,26 @@ def api(self):
         poke_db.save()
         
         logger.info(f"📝 Datos obtenidos - Nombre: {name}, XP: {xp}, Altura: {height}")
-    
-    except requests.exceptions.RequestException as e:
-        error_msg = f"❌ Error de conexión con PokeAPI: {e}"
-        logger.error(error_msg)
-        return {
-            'status': 'ERROR', 
-            'message': error_msg,
-            'error_type': 'HTTP_ERROR'
-        }
-        
-    except KeyError as e:
-        error_msg = f"❌ Error en estructura de datos de la API: {e}"
-        logger.error(error_msg)
-        return {
-            'status': 'ERROR',
-            'message': error_msg,
-            'error_type': 'DATA_STRUCTURE_ERROR'
-        }
-        
     except Exception as e:
-        error_msg = f"❌ Error inesperado: {e}"
+        error_msg = f"Error inesperado: {e}"
         logger.error(error_msg)
         return {
             'status': 'ERROR',
             'message': error_msg,
             'error_type': 'UNKNOWN_ERROR'
         }
+
+
+@shared_task(bind=True)
+def delete_files(self):
+    try:
+        media = settings.MEDIA_PATH
+        
+        for file in os.listdir(media):
+            path = os.path.join(media, file)
+            
+            if os.path.isfile(path):
+                os.remove(path)
+                logger.info(f'archivo eliminado: {file}')
+    except Exception as e:
+        logger.error(str(e))
